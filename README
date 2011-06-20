@@ -1,0 +1,8 @@
+This project contains Specs tests for the Scala Collection library.  It was
+inspired by conversations with Alex Boisvert (@boia01) and started at a Bizo
+(www.bizo.com) open-source hackday.
+
+Currently, only part of the Traversable/TraversableLike traits are covered.  The
+eventual goal is to have composable specs mirroring the Scala collections 
+hierarchy that can be used to verify the behavior of new implementations, as
+well as refactorings of existing collections as the library evolves.
