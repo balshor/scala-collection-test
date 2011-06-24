@@ -15,78 +15,7 @@ import org.specs.runner.JUnitSuiteRunner
 
 import Predef.{ _ => _ }
 
-@RunWith(classOf[JUnitSuiteRunner])
-object TraversableSpec extends Specification {
-
-  "immutable Seq" should {
-    import scala.collection.immutable.Seq
-    "using the base implementation" in {
-      implicit val _ = Seq
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-    "using views" in {
-      implicit val _ = new GenericCompanionView[Seq](Seq)
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-  }
-
-  "immutable Lists" should {
-    import scala.collection.immutable.List
-    "using the base implementation" in {
-      implicit val _ = List
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-    "using views" in {
-      implicit val _ = new GenericCompanionView[List](List)
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-  }
-
-  "mutable ArrayBuffers" should {
-    import scala.collection.mutable.ArrayBuffer
-    "using the base implementation" in {
-      implicit val _ = ArrayBuffer
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-    "using views" in {
-      implicit val _ = new GenericCompanionView[ArrayBuffer](ArrayBuffer)
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-  }
-
-  "immutable HashSets" should {
-    import scala.collection.immutable.HashSet
-    "using the base implementation" in {
-      implicit val _ = HashSet
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-    "using views" in {
-      implicit val _ = new GenericCompanionView[HashSet](HashSet)
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-  }
-
-  "mutable HashSets" should {
-    import scala.collection.mutable.HashSet
-    "using the base implementation" in {
-      implicit val _ = HashSet
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-    "using views" in {
-      implicit val _ = new GenericCompanionView[scala.collection.mutable.HashSet](HashSet)
-      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
-      "satisfy traversable examples" in { traversableExamples }
-    }
-  }
+trait TraversableSpec extends Specification {
 
   def genTraversableLikeExamples[A[X] <: scala.collection.Traversable[X]](implicit factory: GenericCompanion[A]) = {
     def t1234: Traversable[Int] = {
