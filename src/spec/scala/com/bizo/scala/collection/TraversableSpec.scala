@@ -1,23 +1,23 @@
 package com.bizo.scala.collection
 
-import java.util.{ ArrayList => JArrayList, Arrays => JArrays }
+import java.util.{ ArrayList => JArrayList, Arrays => JArrays, Collections => JCollections }
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import scala.collection.{ GenTraversable, TraversableLike }
+import scala.collection.{ GenTraversable, TraversableLike, TraversableViewLike, Seq }
 import scala.collection.generic.GenericCompanion
 import scala.collection.mutable.Builder
 
+import com.bizo.matchers._
+
 import org.specs._
-import org.specs.matcher.Matcher
 
-import org.junit.runner.RunWith
-import org.specs.runner.JUnitSuiteRunner
-
+// disable default implicits
 import Predef.{ _ => _ }
 
 trait TraversableSpec extends Specification {
 
   def genTraversableLikeExamples[A[X] <: scala.collection.Traversable[X]](implicit factory: GenericCompanion[A]) = {
+    val t1234Array = Array(1, 2, 3, 4)
     def t1234: Traversable[Int] = {
       val builder = factory.newBuilder[Int]
       builder += 1
@@ -26,6 +26,10 @@ trait TraversableSpec extends Specification {
       builder += 4
 
       builder.result
+    }
+
+    def empty: Traversable[Int] = {
+      factory.newBuilder[Int].result
     }
 
     "concatenate" in {
@@ -51,48 +55,59 @@ trait TraversableSpec extends Specification {
       }
 
       (t1234.collect(partialFunction)) must matchElementsInAnyOrder(Array(4, 8))
+      (empty.collect(partialFunction)) must beEmpty
     }
 
     "count" in {
       (t1234.count { _ % 2 == 0 }) mustEqual 2
+      (empty.count { _ % 2 == 0 }) mustEqual 0
     }
 
     "drop" in {
-      (t1234.drop(2).size) mustEqual 2
+      t1234.drop(2) must matchSize(2)
+      empty.drop(2) must beEmpty
     }
 
     "exists" in {
       (t1234 exists { _ % 2 == 0 }) mustEqual true
       (t1234 exists { _ % 5 == 0 }) mustEqual false
+      (empty exists { _ % 2 == 0 }) mustEqual false
     }
 
     "filter" in {
       (t1234 filter { _ % 2 == 0 }) must matchElementsInAnyOrder(Array(2, 4))
+      (empty filter { _ % 2 == 0 }) must beEmpty
     }
 
     "filterNot" in {
       (t1234 filterNot { _ % 2 == 0 }) must matchElementsInAnyOrder(Array(1, 3))
+      (empty filterNot { _ % 2 == 0 }) must beEmpty
     }
 
     "find" in {
       (t1234 find { _ % 3 == 0 }) mustEqual Some(3)
       (t1234 find { _ % 5 == 0 }) mustEqual None
+      (empty find { _ % 3 == 0 }) mustEqual None
     }
 
     "flatMap" in {
       (t1234 flatMap { n => Seq(n, n + 10) }) must matchElementsInAnyOrder(Array(1, 2, 3, 4, 11, 12, 13, 14))
+      (empty flatMap { n => Seq(n, n + 10) }) must beEmpty
     }
 
     "fold" in {
       t1234.fold(100)(_ + _) mustEqual 110
+      empty.fold(100)(_ + _) mustEqual 100
     }
 
     "foldLeft" in {
       t1234.foldLeft(100)(_ + _) mustEqual 110
+      empty.foldLeft(100)(_ + _) mustEqual 100
     }
 
     "foldRight" in {
       t1234.foldRight(100)(_ + _) mustEqual 110
+      empty.foldRight(100)(_ + _) mustEqual 100
     }
 
     "forall" in {
@@ -104,6 +119,10 @@ trait TraversableSpec extends Specification {
       acc.contains(3) mustEqual true
       acc.contains(4) mustEqual true
       acc.size mustEqual 4
+
+      acc.clear()
+      empty foreach { n => acc.add(n) }
+      acc.isEmpty mustEqual true
     }
 
     "groupBy" in {
@@ -112,22 +131,321 @@ trait TraversableSpec extends Specification {
       (grouped.size) mustEqual 2
       grouped(0) must matchElementsInAnyOrder(Array(2, 4))
       grouped(1) must matchElementsInAnyOrder(Array(1, 3))
+
+      empty groupBy { _ % 2 } must beEmpty
+    }
+
+    "hasDefiniteSize" in {
+      t1234.hasDefiniteSize // must just not throw an exception
+      empty.hasDefiniteSize mustEqual true
+    }
+
+    "head" in {
+      val entry = t1234 head
+
+      entry must beElementOf(t1234Array)
+
+      try {
+        empty head
+
+        fail
+      } catch {
+        case e: NoSuchElementException => // expected, pass silently
+      }
+    }
+
+    "headOption" in {
+      val entryOption = t1234 headOption
+
+      entryOption.isDefined mustEqual true
+
+      val entry = entryOption.get
+
+      entry must beElementOf(t1234Array)
+
+      empty.headOption.isDefined mustEqual false
+    }
+
+    "init" in {
+      t1234.init must matchSize(3)
+
+      try {
+        empty.init
+      } catch {
+        case e: UnsupportedOperationException => // expected, pass silently
+      }
+    }
+
+    "inits" in {
+      val collection = t1234
+
+      // Views are not supported.  See, eg https://issues.scala-lang.org/browse/SI-3117
+      if (!collection.isInstanceOf[TraversableViewLike[_, _, _]]) {
+        val inits = t1234 inits
+        var size = 4
+        for (elem <- inits) {
+          elem must matchSize(size)
+          size -= 1
+          elem must beSubsetOf(t1234Array)
+        }
+      }
+    }
+
+    "isEmpty" in {
+      t1234.isEmpty mustEqual false
+      empty.isEmpty mustEqual true
+    }
+
+    "last" in {
+      val last = t1234.last
+
+      last must beElementOf(t1234Array)
+      try {
+        empty last
+
+        fail
+      } catch {
+        case e: NoSuchElementException => // expected, pass silently
+      }
+    }
+
+    "lastOption" in {
+      val lastOption = t1234.lastOption
+
+      lastOption.isDefined mustEqual true
+      lastOption.get must beElementOf(t1234Array)
+
+      empty.lastOption.isDefined mustEqual false
+    }
+
+    "map" in {
+      val mapped = t1234 map { n => n + 10 }
+      mapped must matchElementsInAnyOrder(Array(11, 12, 13, 14))
+
+      empty map { n => n + 10 } must beEmpty
+    }
+
+    "partition" in {
+      val (even, odd) = t1234 partition { _ % 2 == 0 }
+      even must matchElementsInAnyOrder(Array(2, 4))
+      odd must matchElementsInAnyOrder(Array(1, 3))
+
+      {
+        val (nonPositive, positive) = t1234 partition { _ <= 0 }
+        positive must matchElementsInAnyOrder(t1234Array)
+        nonPositive must beEmpty
+      }
+
+      {
+        val (positive, nonPositive) = t1234 partition { _ > 0 }
+        positive must matchElementsInAnyOrder(t1234Array)
+        nonPositive must beEmpty
+      }
+
+      {
+        val (left, right) = empty partition { _ > 0 }
+        left must beEmpty
+        right must beEmpty
+      }
+    }
+
+    "repr" in {
+      t1234.repr must matchElementsInAnyOrder(t1234Array)
+      empty.repr must beEmpty
+    }
+
+    "scan" in {
+      val builder = factory.newBuilder[Int]
+      builder += 1
+      builder += 2
+      val scanned = builder.result.scan(0)(_ + _)
+
+      scanned must matchSize(3)
+
+      // in unordered collections, the result is also unordered
+      if (scanned.isInstanceOf[Seq[Int]]) {
+        scanned.head mustEqual 0
+        scanned.tail.head must beElementOf(Array(1, 2))
+        scanned.last mustEqual 3
+      }
+    }
+
+    "scanLeft" in {
+      val builder = factory.newBuilder[Int]
+      builder += 1
+      builder += 2
+      val scanned = builder.result.scanLeft(0)(_ + _)
+
+      scanned must matchSize(3)
+
+      // in unordered collections, the result is also unordered
+      if (scanned.isInstanceOf[Seq[Int]]) {
+        scanned.head mustEqual 0
+        scanned.tail.head must beElementOf(Array(1, 2))
+        scanned.last mustEqual 3
+      }
+    }
+
+    // Sometimes fails due to result ordering in 2.9.0-1.  See https://issues.scala-lang.org/browse/SI-4161
+    "scanRight" in {
+      val builder = factory.newBuilder[Int]
+      builder += 1
+      builder += 2
+      val scanned = builder.result.scanRight(0)(_ + _)
+
+      scanned must matchSize(3)
+
+      // in unordered collections, the result is also unordered
+      if (scanned.isInstanceOf[Seq[Int]]) {
+        scanned.head mustEqual 3
+        scanned.tail.head must beElementOf(Array(1, 2))
+        scanned.last mustEqual 0
+      }
+    }
+
+    "slice" in {
+      val sliced = t1234 slice (1, 3)
+      sliced must matchSize(2)
+      sliced must beSubsetOf(t1234Array)
+    }
+
+    "span" in {
+      val (taken, dropped) = t1234 span (_ < 2)
+
+      for (element <- taken) {
+        (element < 2) mustEqual true
+      }
+
+      (taken ++ dropped) must matchElementsInAnyOrder(t1234Array)
+    }
+
+    "splitAt" in {
+      val (prefix, suffix) = t1234 splitAt 1
+
+      prefix must matchSize(1)
+      suffix must matchSize(3)
+
+      (prefix ++ suffix) must matchElementsInAnyOrder(t1234Array)
+    }
+
+    "stringPrefix" in {
+      val prefix = t1234 stringPrefix
+
+      prefix must not(beEqualTo(null))
+      prefix.length must not(beEqualTo(0))
+    }
+
+    "tail" in {
+      val tail = t1234 tail
+
+      tail must matchSize(3)
+      tail must beSubsetOf(t1234Array)
+    }
+
+    "tails" in {
+      val collection = t1234
+
+      // Views are not supported.  See, eg https://issues.scala-lang.org/browse/SI-3117
+      if (!collection.isInstanceOf[TraversableViewLike[_, _, _]]) {
+        val tails = collection tails
+        var size = 4
+        for (elem <- tails) {
+          elem must matchSize(size)
+          size -= 1
+          elem must beSubsetOf(t1234Array)
+        }
+      }
+    }
+
+    "take" in {
+      val taken = t1234 take 3
+
+      taken must matchSize(3)
+      taken must beSubsetOf(t1234Array)
+    }
+
+    "takeWhile" in {
+      val taken = t1234 takeWhile (_ % 2 != 0)
+
+      for (elem <- taken) {
+        (elem % 2 != 0) mustEqual true
+      }
+      taken must beSubsetOf(t1234Array)
+    }
+
+    "toIterator" in { // Note: do not use matchers in this test as the matchers use iterators.
+      val iterator = t1234.toIterator
+      val elements = new JArrayList[Integer](4)
+      while (iterator.hasNext) {
+        elements.add(iterator.next)
+      }
+      JCollections.sort(elements);
+
+      val expected = new JArrayList[Integer](4)
+      expected.add(1)
+      expected.add(2)
+      expected.add(3)
+      expected.add(4)
+
+      elements mustEqual expected
+    }
+
+    "toStream" in {
+      val iterator = t1234.toStream.toIterator
+      val elements = new JArrayList[Integer](4)
+      while (iterator.hasNext) {
+        elements.add(iterator.next)
+      }
+      JCollections.sort(elements);
+
+      val expected = new JArrayList[Integer](4)
+      expected.add(1)
+      expected.add(2)
+      expected.add(3)
+      expected.add(4)
+
+      elements mustEqual expected
+    }
+
+    "toString" in {
+      val strRep = t1234.toString
+      strRep must not(beEqualTo(null))
+      (strRep.length > 0) mustEqual true
+    }
+
+    "toTraversable" in {
+      val iterator = t1234.toTraversable.toIterator
+      val elements = new JArrayList[Integer](4)
+      while (iterator.hasNext) {
+        elements.add(iterator.next)
+      }
+      JCollections.sort(elements);
+
+      val expected = new JArrayList[Integer](4)
+      expected.add(1)
+      expected.add(2)
+      expected.add(3)
+      expected.add(4)
+
+      elements mustEqual expected
+    }
+
+    "view(int,int)" in {
+
+    }
+
+    /* Views are tested by re-running all (compatible) tests using a GenericCompanionView.
+    "view" in {
+
+    }
+    */
+
+    "withFilter" in {
+
     }
   }
 
   def traversableExamples[A[X] <: Traversable[X]](implicit factory: GenericCompanion[A]) = {
-    "satisfy equality when elements are equal" in {
-      val first = factory.newBuilder[Int]
-      first += 1
-      first += 2
-
-      val second = factory.newBuilder[Int]
-      second += 1
-      second += 2
-
-      first.result must_== second.result
-    }
-
     "flatten nested traversables" in {
       val innerBuilder1 = factory.newBuilder[Int]
       innerBuilder1 += 1
@@ -169,75 +487,6 @@ trait TraversableSpec extends Specification {
 
       (outerBuilder.result.transpose) must matchNestedElementsInAnyOrder(Array(Array(1, 3, 5), Array(2, 4, 6)))
     }
-  }
-}
-
-sealed trait MatchAnyOrder[A] {
-  def matches(left: Array[A], right: GenTraversable[A]): Boolean = {
-    if (left.length != right.size) {
-      return false
-    }
-    val leftCopy = new JArrayList[A](left.length)
-    for (i <- (0 until left.length)) {
-      leftCopy.add(left(i))
-    }
-    for (elem <- right) {
-      val found = leftCopy.remove(elem)
-      if (!found) {
-        return false
-      }
-    }
-    return leftCopy.isEmpty
-  }
-
-  def matchesNested(left: Array[Array[A]], right: GenTraversable[GenTraversable[A]]): Boolean = {
-    val leftCopy = new JArrayList[Array[A]](left.length)
-    for (i <- (0 until left.length)) {
-      leftCopy.add(left(i))
-    }
-    for (subTraversable <- right) {
-      var found = false
-      for (i <- (0 until leftCopy.size)) {
-        if (!found && matches(leftCopy.get(i), subTraversable)) {
-          leftCopy.remove(i)
-          found = true
-        }
-      }
-      if (!found) {
-        return false
-      }
-    }
-    leftCopy isEmpty
-  }
-}
-
-case class matchElementsInAnyOrder[A](expected: Array[A]) extends Matcher[GenTraversable[A]] with MatchAnyOrder[A] {
-  def apply(actual: => GenTraversable[A]): (Boolean, String, String) =
-    (matches(expected, actual),
-      "GenTraversable contains expected elements.",
-      "GenTraversable does not match expected elements.  Found [%s], expected [%s]".format(actual, JArrays.asList(expected)))
-}
-
-case class matchNestedElementsInAnyOrder[A](expected: Array[Array[A]]) extends Matcher[GenTraversable[GenTraversable[A]]] with MatchAnyOrder[A] {
-  def apply(actual: => GenTraversable[GenTraversable[A]]): (Boolean, String, String) = {
-    (matchesNested(expected, actual), "GenTraversable contains expected nested elements", "GenTraversable does not match expected elements.")
-  }
-
-}
-
-case class matchElementsInOrder[A](expected: Array[A]) extends Matcher[GenTraversable[A]] {
-  def apply(actual: => GenTraversable[A]): (Boolean, String, String) = {
-    val it = actual.toIterator
-    for (i <- (0 until expected.length)) {
-      if (!it.hasNext) {
-        return (false, "(ignored)", "insufficient elements in input at index " + i)
-      }
-      val next = it.next
-      if (expected(i) != next) {
-        return (false, "(ignored)", "non-equal elements at index %d: expected %s, actual %s".format(i, expected(i), next))
-      }
-    }
-    (true, "input contains expected elements in order", "(ignored)")
   }
 }
 
