@@ -1,8 +1,7 @@
 package com.bizo.scala.collection.immutable
 
 import org.specs._
-import com.bizo.scala.collection.TraversableSpec
-import com.bizo.scala.collection.GenericCompanionView
+import com.bizo.scala.collection._
 
 object HashSetSpec extends TraversableSpec {
 
@@ -15,6 +14,11 @@ object HashSetSpec extends TraversableSpec {
     }
     "using views" in {
       implicit val _ = new GenericCompanionView[HashSet](HashSet)
+      "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
+      "satisfy traversable examples" in { traversableExamples }
+    }
+    "using range views" in {
+      implicit val _ = new GenericCompanionRangeView[HashSet](HashSet)
       "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
       "satisfy traversable examples" in { traversableExamples }
     }

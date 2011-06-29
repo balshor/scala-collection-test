@@ -430,18 +430,30 @@ trait TraversableSpec extends Specification {
       elements mustEqual expected
     }
 
+    /* Views are tested by re-running all (compatible) tests using a GenericCompanionView.
     "view(int,int)" in {
 
     }
 
-    /* Views are tested by re-running all (compatible) tests using a GenericCompanionView.
     "view" in {
 
     }
     */
 
     "withFilter" in {
+      val filtered = t1234 withFilter { _ % 2 == 0 }
 
+      val elements = new JArrayList[Integer](2)
+      for (elem <- filtered) {
+        elements.add(elem)
+      }
+      JCollections.sort(elements);
+
+      val expected = new JArrayList[Integer](2)
+      expected.add(2)
+      expected.add(4)
+
+      elements mustEqual expected
     }
   }
 
@@ -495,6 +507,18 @@ class GenericCompanionView[A[X] <: Traversable[X]](companion: GenericCompanion[A
     def +=(elem: X) = { builder += elem; this }
     def clear() { builder.clear() }
     def result() = { builder.result.view }
+  }
+
+  def newBuilder[X]: Builder[X, Traversable[X]] = {
+    newViewBuilder(companion.newBuilder[X])
+  }
+}
+
+class GenericCompanionRangeView[A[X] <: Traversable[X]](companion: GenericCompanion[A], min: Int = 0, max: Int = 10) extends GenericCompanion[Traversable] {
+  private def newViewBuilder[X](builder: Builder[X, A[X]]) = new Builder[X, Traversable[X]] {
+    def +=(elem: X) = { builder += elem; this }
+    def clear() { builder.clear() }
+    def result() = { builder.result.view(min, max) }
   }
 
   def newBuilder[X]: Builder[X, Traversable[X]] = {
