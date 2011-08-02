@@ -15,8 +15,18 @@ import org.specs._
 import Predef.{ _ => _ }
 
 trait TraversableSpec extends Specification {
+  val isOrdered = false
+
+  def matchElements[B](elements: Array[B]) = {
+    if (isOrdered) {
+      matchElementsInOrder(elements)
+    } else {
+      matchElementsInAnyOrder(elements)
+    }
+  }
 
   def genTraversableLikeExamples[A[X] <: scala.collection.Traversable[X]](implicit factory: GenericCompanion[A]) = {
+
     val t1234Array = Array(1, 2, 3, 4)
     def t1234: Traversable[Int] = {
       val builder = factory.newBuilder[Int]
@@ -45,7 +55,7 @@ trait TraversableSpec extends Specification {
       second += 7
       second += 8
 
-      (first.result ++ second.result) must matchElementsInAnyOrder(Array(1, 2, 3, 4, 5, 6, 7, 8))
+      (first.result ++ second.result) must matchElements(Array(1, 2, 3, 4, 5, 6, 7, 8))
     }
 
     "collect" in {
@@ -54,7 +64,7 @@ trait TraversableSpec extends Specification {
         def apply(n: Int) = 2 * n
       }
 
-      (t1234.collect(partialFunction)) must matchElementsInAnyOrder(Array(4, 8))
+      (t1234.collect(partialFunction)) must matchElements(Array(4, 8))
       (empty.collect(partialFunction)) must beEmpty
     }
 
@@ -75,12 +85,12 @@ trait TraversableSpec extends Specification {
     }
 
     "filter" in {
-      (t1234 filter { _ % 2 == 0 }) must matchElementsInAnyOrder(Array(2, 4))
+      (t1234 filter { _ % 2 == 0 }) must matchElements(Array(2, 4))
       (empty filter { _ % 2 == 0 }) must beEmpty
     }
 
     "filterNot" in {
-      (t1234 filterNot { _ % 2 == 0 }) must matchElementsInAnyOrder(Array(1, 3))
+      (t1234 filterNot { _ % 2 == 0 }) must matchElements(Array(1, 3))
       (empty filterNot { _ % 2 == 0 }) must beEmpty
     }
 
@@ -91,7 +101,7 @@ trait TraversableSpec extends Specification {
     }
 
     "flatMap" in {
-      (t1234 flatMap { n => Seq(n, n + 10) }) must matchElementsInAnyOrder(Array(1, 2, 3, 4, 11, 12, 13, 14))
+      (t1234 flatMap { n => Seq(n, n + 10) }) must matchElements(Array(1, 11, 2, 12, 3, 13, 4, 14))
       (empty flatMap { n => Seq(n, n + 10) }) must beEmpty
     }
 
@@ -129,8 +139,8 @@ trait TraversableSpec extends Specification {
       val grouped = t1234 groupBy { _ % 2 }
 
       (grouped.size) mustEqual 2
-      grouped(0) must matchElementsInAnyOrder(Array(2, 4))
-      grouped(1) must matchElementsInAnyOrder(Array(1, 3))
+      grouped(0) must matchElements(Array(2, 4))
+      grouped(1) must matchElements(Array(1, 3))
 
       empty groupBy { _ % 2 } must beEmpty
     }
@@ -220,25 +230,25 @@ trait TraversableSpec extends Specification {
 
     "map" in {
       val mapped = t1234 map { n => n + 10 }
-      mapped must matchElementsInAnyOrder(Array(11, 12, 13, 14))
+      mapped must matchElements(Array(11, 12, 13, 14))
 
       empty map { n => n + 10 } must beEmpty
     }
 
     "partition" in {
       val (even, odd) = t1234 partition { _ % 2 == 0 }
-      even must matchElementsInAnyOrder(Array(2, 4))
-      odd must matchElementsInAnyOrder(Array(1, 3))
+      even must matchElements(Array(2, 4))
+      odd must matchElements(Array(1, 3))
 
       {
         val (nonPositive, positive) = t1234 partition { _ <= 0 }
-        positive must matchElementsInAnyOrder(t1234Array)
+        positive must matchElements(t1234Array)
         nonPositive must beEmpty
       }
 
       {
         val (positive, nonPositive) = t1234 partition { _ > 0 }
-        positive must matchElementsInAnyOrder(t1234Array)
+        positive must matchElements(t1234Array)
         nonPositive must beEmpty
       }
 
@@ -250,7 +260,7 @@ trait TraversableSpec extends Specification {
     }
 
     "repr" in {
-      t1234.repr must matchElementsInAnyOrder(t1234Array)
+      t1234.repr must matchElements(t1234Array)
       empty.repr must beEmpty
     }
 
@@ -304,9 +314,15 @@ trait TraversableSpec extends Specification {
     }
 
     "slice" in {
-      val sliced = t1234 slice (1, 3)
-      sliced must matchSize(2)
-      sliced must beSubsetOf(t1234Array)
+      try {
+        val sliced = t1234 slice (1, 3)
+        sliced must matchSize(2)
+        sliced must beSubsetOf(t1234Array)
+      } catch {
+        case u: UnsupportedOperationException => {
+          fail("slice is not supported")
+        }
+      }
     }
 
     "span" in {
@@ -316,7 +332,7 @@ trait TraversableSpec extends Specification {
         (element < 2) mustEqual true
       }
 
-      (taken ++ dropped) must matchElementsInAnyOrder(t1234Array)
+      (taken ++ dropped) must matchElements(t1234Array)
     }
 
     "splitAt" in {
@@ -325,7 +341,7 @@ trait TraversableSpec extends Specification {
       prefix must matchSize(1)
       suffix must matchSize(3)
 
-      (prefix ++ suffix) must matchElementsInAnyOrder(t1234Array)
+      (prefix ++ suffix) must matchElements(t1234Array)
     }
 
     "stringPrefix" in {
@@ -365,12 +381,18 @@ trait TraversableSpec extends Specification {
     }
 
     "takeWhile" in {
-      val taken = t1234 takeWhile (_ % 2 != 0)
+      try {
+        val taken = t1234 takeWhile (_ % 2 != 0)
 
-      for (elem <- taken) {
-        (elem % 2 != 0) mustEqual true
+        for (elem <- taken) {
+          (elem % 2 != 0) mustEqual true
+        }
+        taken must beSubsetOf(t1234Array)
+      } catch {
+        case unsupported: UnsupportedOperationException => {
+          fail("takeWhile is not supported")
+        }
       }
-      taken must beSubsetOf(t1234Array)
     }
 
     "toIterator" in { // Note: do not use matchers in this test as the matchers use iterators.
@@ -476,7 +498,7 @@ trait TraversableSpec extends Specification {
       outerBuilder += innerBuilder2.result
       outerBuilder += innerBuilder3.result
 
-      (outerBuilder.result.flatten) must matchElementsInAnyOrder(Array(1, 2, 3, 4, 5, 6))
+      (outerBuilder.result.flatten) must matchElements(Array(1, 2, 3, 4, 5, 6))
     }
 
     "transpose nested traversables" in {
@@ -525,3 +547,7 @@ class GenericCompanionRangeView[A[X] <: Traversable[X]](companion: GenericCompan
     newViewBuilder(companion.newBuilder[X])
   }
 }
+
+sealed trait OrderedProperty
+case class IsOrdered extends OrderedProperty
+case class NotOrdered extends OrderedProperty

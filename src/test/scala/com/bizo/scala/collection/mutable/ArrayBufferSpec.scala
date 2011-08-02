@@ -5,6 +5,8 @@ import com.bizo.scala.collection._
 
 object ArrayBufferSpec extends TraversableSpec {
 
+  override val isOrdered = true
+  
   "mutable ArrayBuffers" should {
     import scala.collection.mutable.ArrayBuffer
     "using the base implementation" in {

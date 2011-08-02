@@ -5,6 +5,8 @@ import com.bizo.scala.collection._
 
 object ListSpec extends TraversableSpec {
 
+  override val isOrdered = true
+  
   "immutable Lists" should {
     import scala.collection.immutable.List
     "using the base implementation" in {

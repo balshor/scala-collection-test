@@ -5,6 +5,8 @@ import com.bizo.scala.collection._
 
 object SeqSpec extends TraversableSpec {
 
+  override val isOrdered = true
+  
   "immutable Seq" should {
     import scala.collection.immutable.Seq
     "using the base implementation" in {

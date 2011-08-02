@@ -47,9 +47,9 @@ sealed trait MatchAnyOrder[A] {
   }
 
   /**
-   * Determines whether the elements of a nested array are the same as the elements in the GenTraversable without regard 
+   * Determines whether the elements of a nested array are the same as the elements in the GenTraversable without regard
    * to order.  Specifically, tests whether there exists a row bijection that equates rows containing the same elements
-   * without regard to order. 
+   * without regard to order.
    */
   def matchesNested(left: Array[Array[A]], right: GenTraversable[GenTraversable[A]]): Boolean = {
     val leftCopy = arrayListCopy(left)
@@ -143,5 +143,24 @@ case class beSubsetOf[A](original: Array[A]) extends Matcher[GenTraversable[A]] 
       }
     }
     (true, "All elements found.", "ignored")
+  }
+}
+
+case class matchAsSet[A](original: Array[A]) extends Matcher[GenTraversable[A]] {
+  import java.util.{ Set => JSet, HashSet => JHashSet }
+
+  def copyToJSet[B](source: GenTraversable[B]): JSet[B] = {
+    val set = new JHashSet[B]
+    val iterator = source.toIterator
+    while(iterator.hasNext) {
+      set.add(iterator.next)
+    }
+    set
+  }
+  
+  final val originalSet = copyToJSet(original)
+  def apply(actual: => GenTraversable[A]): (Boolean, String, String) = {
+    val actualSet = copyToJSet(actual)
+    (originalSet == actualSet, "Matches as sets.", "Original:%s, Actual:%s".format(originalSet, actualSet))
   }
 }
