@@ -3,7 +3,7 @@ package com.bizo.scala.collection.immutable
 import org.specs._
 import com.bizo.scala.collection._
 
-object SeqSpec extends TraversableSpec {
+object SeqSpec extends TraversableSpec with IterableViewSpec {
 
   override val isOrdered = true
   
@@ -15,14 +15,18 @@ object SeqSpec extends TraversableSpec {
       "satisfy traversable examples" in { traversableExamples }
     }
     "using views" in {
-      implicit val _ = new GenericCompanionView[Seq](Seq)
+      implicit val _1 = new GenericCompanionView[Seq](Seq)
+      implicit val _2 = new CompanionIterableView[Seq](Seq)
       "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
       "satisfy traversable examples" in { traversableExamples }
+      "satisfy iterableviewlike examples" in { iterableViewLikeExamples }
     }
     "using range views" in {
       implicit val _ = new GenericCompanionRangeView[Seq](Seq)
+      implicit val _2 = new CompanionIterableRangeView[Seq](Seq)
       "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
       "satisfy traversable examples" in { traversableExamples }
+      "satisfy iterableviewlike examples" in { iterableViewLikeExamples }
     }
   }  
   

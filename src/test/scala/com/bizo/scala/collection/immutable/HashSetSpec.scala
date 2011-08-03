@@ -5,7 +5,7 @@ import scala.collection.mutable.Builder
 import org.specs._
 import com.bizo.scala.collection._
 
-object HashSetSpec extends TraversableSpec with SetLikeSpec {
+object HashSetSpec extends TraversableSpec with SetLikeSpec with IterableViewSpec {
 
   "immutable HashSets" should {
     import scala.collection.immutable.HashSet
@@ -17,14 +17,18 @@ object HashSetSpec extends TraversableSpec with SetLikeSpec {
       "satisfy setlike examples" in { setLikeExamples[HashSet] }
     }
     "using views" in {
-      implicit val _ = new GenericCompanionView[HashSet](HashSet)
+      implicit val _1 = new GenericCompanionView[HashSet](HashSet)
+      implicit val _2 = new CompanionIterableView[HashSet](HashSet)
       "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
       "satisfy traversable examples" in { traversableExamples }
+      "satisfy iterableviewlike examples" in { iterableViewLikeExamples }
     }
     "using range views" in {
-      implicit val _ = new GenericCompanionRangeView[HashSet](HashSet)
+      implicit val _1 = new GenericCompanionRangeView[HashSet](HashSet)
+      implicit val _2 = new CompanionIterableRangeView[HashSet](HashSet)
       "satisfy gentraversablelike examples" in { genTraversableLikeExamples }
       "satisfy traversable examples" in { traversableExamples }
+      "satisfy iterableviewlike examples" in { iterableViewLikeExamples }
     }
   }
 
